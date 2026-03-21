@@ -1,42 +1,40 @@
 from fastapi import HTTPException
+from sqlalchemy.orm import Session
 from app.schemas import TaskCreate, TaskUpdate
-
-db: dict[int, dict] = {}
-
-
-def create_task(task: TaskCreate) -> dict:
-    task_data = task.model_dump()
-    new_id = max(db.keys(), default=0) + 1
-    task_data["id"] = new_id
-    db[new_id] = task_data
-    return task_data
+from app.repositories.tasks import TaskRepository
 
 
-def get_all_tasks() -> list[dict]:
-    return list(db.values())
+def create_task(task: TaskCreate, db: Session):
+    repository = TaskRepository(db)
+    return repository.create(task.title, task.description, task.completed)
 
 
-def get_task(task_id: int) -> dict:
-    if task_id not in db:
-        raise HTTPException(status_code=404, detail="Not found")
-    return db[task_id]
+def get_all_tasks(db: Session):
+    repository = TaskRepository(db)
+    return repository.get_all()
 
 
-def update_task(task_id: int, task: TaskUpdate) -> dict:
-    if task_id not in db:
-        raise HTTPException(status_code=404, detail="Not found")
+def get_task(task_id: int, db: Session):
+    repository = TaskRepository(db)
+    task = repository.get_by_id(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+    return task
 
-    existing_task = db[task_id]
+
+def update_task(task_id: int, task: TaskUpdate, db: Session):
+    repository = TaskRepository(db)
+    existing_task = repository.get_by_id(task_id)
+    if not existing_task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
     update_data = task.model_dump(exclude_unset=True)
-
-    for key, value in update_data.items():
-        existing_task[key] = value
-
-    return existing_task
+    return repository.update(existing_task, update_data)
 
 
-def delete_task(task_id: int) -> dict:
-    if task_id not in db:
-        raise HTTPException(status_code=404, detail="Not found")
-    del db[task_id]
-    return {"detail": "Deleted"}
+def delete_task(task_id: int, db: Session) -> dict:
+    repository = TaskRepository(db)
+    task = repository.get_by_id(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Задача не найдена")
+    repository.delete(task)
+    return {"detail": "Удалено"}
