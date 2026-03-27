@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from app.database import Base
 
 
@@ -18,3 +18,11 @@ class Task(Base):
     title = Column(String)
     description = Column(String, nullable=True)
     completed = Column(Boolean, default=False)
+
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True)
+    text = Column(String, nullable=False)
+    task_id = Column(Integer, ForeignKey("tasks.id"), nullable=False)

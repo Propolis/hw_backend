@@ -37,3 +37,15 @@ class UserLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+
+class CommentCreate(BaseModel):
+    text: str = Field(min_length=1)
+
+
+class CommentResponse(BaseModel):
+    id: int
+    text: str
+    task_id: int
+
+    model_config = {"from_attributes": True}
