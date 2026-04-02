@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.schemas import UserCreate, UserLogin, Token
 from app.database import get_db
 from app.repositories.users import UserRepository
@@ -9,18 +9,18 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
 @router.post("/register")
-def register(user: UserCreate, db: Session = Depends(get_db)):
+async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     repository = UserRepository(db)
-    if repository.get_by_username(user.username):
+    if await repository.get_by_username(user.username):
         raise HTTPException(status_code=400, detail="Пользователь с таким именем уже существует")
-    repository.create(user.username, user.email, hash_password(user.password))
+    await repository.create(user.username, user.email, hash_password(user.password))
     return {"detail": "Зарегистрирован"}
 
 
 @router.post("/login", response_model=Token)
-def login(user: UserLogin, db: Session = Depends(get_db)):
+async def login(user: UserLogin, db: AsyncSession = Depends(get_db)):
     repository = UserRepository(db)
-    db_user = repository.get_by_username(user.username)
+    db_user = await repository.get_by_username(user.username)
     if not db_user or not verify_password(user.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Неверные учётные данные")
     token = create_access_token({"sub": db_user.username})

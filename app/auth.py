@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 from jose import JWTError, jwt
 import bcrypt
 from fastapi import Depends, HTTPException, Header
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.repositories.users import UserRepository
 
@@ -25,7 +25,7 @@ def create_access_token(data: dict) -> str:
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITM)
 
 
-def get_current_user(auth_token: str | None = Header(default=None), db: Session = Depends(get_db)):
+async def get_current_user(auth_token: str | None = Header(default=None), db: AsyncSession = Depends(get_db)):
     if not auth_token:
         raise HTTPException(status_code=401, detail="Не авторизован")
     repository = UserRepository(db)
@@ -34,7 +34,7 @@ def get_current_user(auth_token: str | None = Header(default=None), db: Session 
         username: str = payload.get("sub")
     except JWTError:
         raise HTTPException(status_code=401, detail="Недействительный токен")
-    user = repository.get_by_username(username)
+    user = await repository.get_by_username(username)
     if not user:
         raise HTTPException(status_code=401, detail="Пользователь не найден")
     return user

@@ -9,12 +9,12 @@ class CommentService:
         self.comment_repository = comment_repository
         self.task_repository = task_repository
 
-    def create_comment(self, task_id: int, comment: CommentCreate):
-        if not self.task_repository.get_by_id(task_id):
+    async def create_comment(self, task_id: int, comment: CommentCreate):
+        if not await self.task_repository.get_by_id(task_id):
             raise TaskNotFound(task_id)
-        return self.comment_repository.create(comment.text, task_id)
+        return await self.comment_repository.create(comment.text, task_id)
 
-    def get_comments(self, task_id: int):
-        if not self.task_repository.get_by_id(task_id):
+    async def get_comments(self, task_id: int):
+        if not await self.task_repository.get_by_id(task_id):
             raise TaskNotFound(task_id)
-        return self.comment_repository.get_by_task(task_id)
+        return await self.comment_repository.get_by_task(task_id)

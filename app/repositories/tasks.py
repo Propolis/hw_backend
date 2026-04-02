@@ -1,35 +1,34 @@
-from sqlalchemy.orm import Session
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Task
 
 
 class TaskRepository:
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def create(self, title: str, description: str | None, completed: bool):
+    async def create(self, title: str, description: str | None, completed: bool) -> Task:
         task = Task(title=title, description=description, completed=completed)
         self.db.add(task)
-        self.db.commit()
-        self.db.refresh(task)
+        await self.db.commit()
+        await self.db.refresh(task)
         return task
 
-    def get_all(self):
-        return self.db.query(Task).all()
+    async def get_all(self) -> list[Task]:
+        result = await self.db.execute(select(Task))
+        return result.scalars().all()
 
-    def get_by_id(self, task_id: int):
-        return self.db.query(Task).filter(Task.id == task_id).first()
+    async def get_by_id(self, task_id: int) -> Task | None:
+        result = await self.db.execute(select(Task).where(Task.id == task_id))
+        return result.scalar_one_or_none()
 
-    def update(self, task: Task, update_data: dict):
-        if "title" in update_data:
-            task.title = update_data["title"]
-        if "description" in update_data:
-            task.description = update_data["description"]
-        if "completed" in update_data:
-            task.completed = update_data["completed"]
-        self.db.commit()
-        self.db.refresh(task)
+    async def update(self, task: Task, update_data: dict) -> Task:
+        for key, value in update_data.items():
+            setattr(task, key, value)
+        await self.db.commit()
+        await self.db.refresh(task)
         return task
 
-    def delete(self, task: Task):
-        self.db.delete(task)
-        self.db.commit()
+    async def delete(self, task: Task):
+        await self.db.delete(task)
+        await self.db.commit()
